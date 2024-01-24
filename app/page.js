@@ -3,13 +3,32 @@
 import React, { useState, useEffect } from "react";
 import * as fcl from "@onflow/fcl";
 import * as types from "@onflow/types";
+import firebase from "firebase/compat/app";
+import "firebase/compat/storage";
 import { Label, FileInput } from "flowbite-react";
 import { updatePosts } from "./flow/cadence/transactions/updateFileId";
 import { getids } from "./flow/cadence/scripts/getFileId";
 
+const firebaseConfig = {
+  apiKey: "AIzaSyD1WuTEKWmXAfGLXW-FAuVC9qkZn_s66ZM",
+  authDomain: "uploadfile-f371c.firebaseapp.com",
+  projectId: "uploadfile-f371c",
+  storageBucket: "uploadfile-f371c.appspot.com",
+  messagingSenderId: "374876534084",
+  appId: "1:374876534084:web:bd63d7e554eeabcf679311",
+  measurementId: "G-TZJV2KZL60"
+};
+
+if (!firebase.apps.length) {
+  firebase.initializeApp(firebaseConfig);
+}
+
+const storage = firebase.storage();
+
 const Home = () => {
-  const [selectedFile, setSelectedFile] = useState(null);
+  const [selectedFiles, setSelectedFiles] = useState([]);
   const [user, setUser] = useState({ loggedIn: false });
+  const [uploadedFiles, setUploadedFiles] = useState([]);
 
   fcl.config({
     "accessNode.api": "https://access-testnet.onflow.org",
@@ -24,36 +43,54 @@ const Home = () => {
   }, []);
 
   const handleFileInputChange = (event) => {
-    const file = event.target.files[0];
-    setSelectedFile(file);
+    const files = event.target.files;
+    setSelectedFiles(Array.from(files));
   };
 
   const handleUpload = async () => {
     try {
-      if (!selectedFile) {
-        console.error("No file selected");
+      if (selectedFiles.length === 0) {
+        console.error("No files selected");
         return;
       }
 
-      // Generate a random ID
-      let id = crypto.randomUUID();
+      const uploadedFilesData = [];
 
-      // Use Flow Client Library (fcl) to send the transaction
-      const transactionId = await fcl
-        .send([
+      // Upload each file
+      for (const file of selectedFiles) {
+        // Generate a random ID
+        const id = crypto.randomUUID();
+
+        // Use Flow Client Library (fcl) to send the transaction
+        await fcl.send([
           fcl.transaction(updatePosts),
           fcl.args([fcl.arg([id], types.Array(types.String))]),
           fcl.payer(fcl.authz),
           fcl.proposer(fcl.authz),
           fcl.authorizations([fcl.authz]),
           fcl.limit(9999),
-        ])
-        .then(fcl.decode);
+        ]);
 
-      console.log("Transaction ID:", transactionId);
-      console.log(id);
+        // Upload file to Firebase Storage
+        const storageRef = storage.ref();
+        const fileRef = storageRef.child(id);
+        await fileRef.put(file);
+
+        uploadedFilesData.push({
+          id,
+          url: await fileRef.getDownloadURL(),
+        });
+      }
+
+      setUploadedFiles((prevUploadedFiles) => [
+        ...prevUploadedFiles,
+        ...uploadedFilesData,
+      ]);
+
+      // Clear selected files after upload
+      setSelectedFiles([]);
     } catch (error) {
-      console.error("Error uploading file:", error);
+      console.error("Error uploading files:", error);
     }
   };
 
@@ -121,14 +158,21 @@ const Home = () => {
                 id="dropzone-file"
                 className="hidden"
                 onChange={handleFileInputChange}
+                multiple
               />
             </Label>
             <div className="mt-4">
-              {selectedFile && <div className="mb-2">{selectedFile.name}</div>}
+              {selectedFiles.length > 0 && (
+                <div className="mb-2">
+                  {selectedFiles.map((file, index) => (
+                    <div key={index}>{file.name}</div>
+                  ))}
+                </div>
+              )}
               <button
                 onClick={handleUpload}
                 className="px-5 py-2 bg-[#38E8C6] text-[#011E30] rounded-md hover:bg-[#38E8C6] hover:text-[#011E30]"
-                disabled={!selectedFile}
+                disabled={selectedFiles.length === 0}
               >
                 Upload
               </button>
@@ -138,6 +182,19 @@ const Home = () => {
           <p className="text-[#38E8C6] text-center">
             Login first to upload files
           </p>
+        )}
+
+        {/* Display uploaded files */}
+        {uploadedFiles.length > 0 && (
+          <div className="mt-2 text-[#38E8C6]">
+            {uploadedFiles.map((file) => (
+              <div key={file.id}>
+                Uploaded ID: {file.id}
+                <br />
+                <img src={file.url} alt="Uploaded File" />
+              </div>
+            ))}
+          </div>
         )}
       </main>
     </div>
