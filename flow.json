@@ -1,0 +1,24 @@
+{
+	"contracts": {
+		"FileStorage": "./app/flow/cadence/FileStorage.cdc"
+	},
+	"networks": {
+		"emulator": "127.0.0.1:3569",
+		"mainnet": "access.mainnet.nodes.onflow.org:9000",
+		"testing": "127.0.0.1:3569",
+		"testnet": "access.devnet.nodes.onflow.org:9000"
+	},
+	"accounts": {
+		"emulator-account": {
+			"address": "f8d6e0586b0a20c7",
+			"key": "6eb42dd96d5634369cb1ec01b142a2445852aee744f3f4228a233f15c960ac67"
+		}
+	},
+	"deployments": {
+		"emulator": {
+			"emulator-account": [
+				"FileStorage"
+			]
+		}
+	}
+}

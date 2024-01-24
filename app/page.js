@@ -1,113 +1,162 @@
-import Image from "next/image";
+// Home.jsx
+"use client";
+import React, { useState, useEffect } from "react";
+import * as fcl from "@onflow/fcl";
+import * as types from "@onflow/types";
+import { Label, FileInput } from "flowbite-react";
+import { getids } from "./flow/cadence/scripts/getFileId";
+import { updatePosts } from "./flow/cadence/transactions/updateFileId";
 
-export default function Home() {
+const Home = () => {
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [user, setUser] = useState({ loggedIn: false });
+  const [files, setFiles] = useState([]);
+  const [uploadedId, setUploadedId] = useState(null);
+  const [file, setFile] = useState();
+  const [data, setData] = useState([]);
+
+  fcl.config({
+    "accessNode.api": "https://access-testnet.onflow.org",
+    "discovery.wallet": `https://fcl-discovery.onflow.org/testnet/authn`,
+    "flow.network": "emulator",
+    "app.detail.icon": "https://avatars.githubusercontent.com/u/62387156?v=4",
+    "app.detail.title": "Bitch",
+  });
+
+  const fetchData = async () => {
+    const result = await fcl.send([fcl.script(getids)]).then(fcl.decode);
+    setData(result.reverse());
+  };
+
+  useEffect(() => {
+    fcl.currentUser.subscribe(setUser);
+    fetchData();
+  }, []);
+
+  const handleFileInputChange = (event) => {
+    const file = event.target.files[0];
+    setSelectedFile(file);
+  };
+
+  const handlePostBtn = async () => {
+    let id = crypto.randomUUID();
+    const transactionId = await fcl
+      .send([
+        fcl.transaction(updatePosts),
+        fcl.args([fcl.arg(id, types.Array(types.String))]),
+        fcl.payer(fcl.authz),
+        fcl.proposer(fcl.authz),
+        fcl.authorizations([fcl.authz]),
+        fcl.limit(9999),
+      ])
+      .then(fcl.decode);
+    fetchData();
+  };
+
   return (
-    <main className="flex min-h-screen flex-col items-center justify-between p-24">
-      <div className="z-10 max-w-5xl w-full items-center justify-between font-mono text-sm lg:flex">
-        <p className="fixed left-0 top-0 flex w-full justify-center border-b border-gray-300 bg-gradient-to-b from-zinc-200 pb-6 pt-8 backdrop-blur-2xl dark:border-neutral-800 dark:bg-zinc-800/30 dark:from-inherit lg:static lg:w-auto  lg:rounded-xl lg:border lg:bg-gray-200 lg:p-4 lg:dark:bg-zinc-800/30">
-          Get started by editing&nbsp;
-          <code className="font-mono font-bold">app/page.js</code>
-        </p>
-        <div className="fixed bottom-0 left-0 flex h-48 w-full items-end justify-center bg-gradient-to-t from-white via-white dark:from-black dark:via-black lg:static lg:h-auto lg:w-auto lg:bg-none">
-          <a
-            className="pointer-events-none flex place-items-center gap-2 p-8 lg:pointer-events-auto lg:p-0"
-            href="https://vercel.com?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            By{" "}
-            <Image
-              src="/vercel.svg"
-              alt="Vercel Logo"
-              className="dark:invert"
-              width={100}
-              height={24}
-              priority
-            />
-          </a>
+    <div className="bg-[#011E30] flex flex-col min-h-screen">
+      <main className="container mx-auto flex-1 p-5">
+        <div className="mb-10 flex justify-between items-center pr-10 pt-2">
+          <div className="flex space-x-4 items-center">
+            <h1 className="text-[#38E8C6]">Address: </h1>
+            <h1 className="border px-7 text-center text-[#38E8C6] text-sm py-1 rounded-xl border-[#38E8C6] w-56">
+              {user.loggedIn ? user.addr : "Please connect wallet -->"}
+            </h1>
+          </div>
+          <div>
+            {!user.loggedIn ? (
+              <button
+                className="border rounded-xl border-[#38E8C6] px-5 text-sm text-[#38E8C6] py-1"
+                onClick={fcl.authenticate}
+              >
+                Log In
+              </button>
+            ) : (
+              <button
+                className="border rounded-xl border-[#38E8C6] px-5 text-sm text-[#38E8C6] py-1"
+                onClick={fcl.unauthenticate}
+              >
+                Logout
+              </button>
+            )}
+          </div>
         </div>
-      </div>
 
-      <div className="relative flex place-items-center before:absolute before:h-[300px] before:w-full sm:before:w-[480px] before:-translate-x-1/2 before:rounded-full before:bg-gradient-radial before:from-white before:to-transparent before:blur-2xl before:content-[''] after:absolute after:-z-20 after:h-[180px] after:w-full sm:after:w-[240px] after:translate-x-1/3 after:bg-gradient-conic after:from-sky-200 after:via-blue-200 after:blur-2xl after:content-[''] before:dark:bg-gradient-to-br before:dark:from-transparent before:dark:to-blue-700 before:dark:opacity-10 after:dark:from-sky-900 after:dark:via-[#0141ff] after:dark:opacity-40 before:lg:h-[360px] z-[-1]">
-        <Image
-          className="relative dark:drop-shadow-[0_0_0.3rem_#ffffff70] dark:invert"
-          src="/next.svg"
-          alt="Next.js Logo"
-          width={180}
-          height={37}
-          priority
-        />
-      </div>
-
-      <div className="mb-32 grid text-center lg:max-w-5xl lg:w-full lg:mb-0 lg:grid-cols-4 lg:text-left">
-        <a
-          href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Docs{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Find in-depth information about Next.js features and API.
+        {/* File Input Section */}
+        {user.loggedIn ? (
+          <div className="flex w-full items-center justify-center">
+            <Label
+              htmlFor="dropzone-file"
+              className="dark:hover:bg-bray-800 flex h-64 w-full cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-[#38E8C6] bg-[#011E30] hover:bg-[#1c3a4dcb] dark:border-gray-600 dark:bg-gray-700 dark:hover:border-gray-500 dark:hover:bg-gray-600"
+            >
+              <div className="flex flex-col items-center justify-center pb-6 pt-5">
+                <svg
+                  className="mb-4 h-8 w-8 text-gray-500 dark:text-gray-400"
+                  aria-hidden="true"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 20 16"
+                >
+                  <path
+                    stroke="currentColor"
+                    strokeLinecap="round"
+                    strokeLineJoin="round"
+                    strokeWidth="2"
+                    d="M13 13h3a3 3 0 0 0 0-6h-.025A5.56 5.56 0 0 0 16 6.5 5.5 5.5 0 0 0 5.207 5.021C5.137 5.017 5.071 5 5 5a4 4 0 0 0 0 8h2.167M10 15V6m0 0L8 8m2-2 2 2"
+                  />
+                </svg>
+                <p className="mb-2 text-sm text-gray-500 dark:text-gray-400">
+                  <span className="font-semibold">Click to upload</span> or drag
+                  and drop
+                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  SVG, PNG, JPG, or GIF (MAX. 800x400px)
+                </p>
+              </div>
+              <FileInput
+                id="dropzone-file"
+                className="hidden"
+                onChange={handleFileInputChange}
+              />
+            </Label>
+            <div className="mt-4">
+              {selectedFile && <div className="mb-2">{selectedFile.name}</div>}
+              <button
+                onClick={handlePostBtn}
+                className="px-5 py-2 bg-[#38E8C6] text-[#011E30] rounded-md hover:bg-[#38E8C6] hover:text-[#011E30]"
+                disabled={!selectedFile}
+              >
+                Upload
+              </button>
+              {uploadedId && (
+                <div className="mt-2 text-[#38E8C6]">
+                  Uploaded ID: {uploadedId}
+                </div>
+              )}
+            </div>
+          </div>
+        ) : (
+          <p className="text-[#38E8C6] text-center">
+            Login first to upload files
           </p>
-        </a>
+        )}
 
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800 hover:dark:bg-opacity-30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Learn{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Learn about Next.js in an interactive course with&nbsp;quizzes!
-          </p>
-        </a>
+        {/* Display Uploaded Files */}
+        <div className="mt-8">
+          <h2 className="text-[#38E8C6] mb-4">Uploaded Files:</h2>
+          <ul className="text-[#38E8C6]">
+            {files.map((file) => (
+              <li key={file} className="mb-2">
+                {file}
+              </li>
+            ))}
+          </ul>
+        </div>
 
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Templates{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Explore starter templates for Next.js.
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Deploy{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50 text-balance`}>
-            Instantly deploy your Next.js site to a shareable URL with Vercel.
-          </p>
-        </a>
-      </div>
-    </main>
+        <h1>{file}</h1>
+      </main>
+    </div>
   );
-}
+};
+
+export default Home;
