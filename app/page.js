@@ -1,19 +1,15 @@
 // Home.jsx
-"use client";
+"use client"
 import React, { useState, useEffect } from "react";
 import * as fcl from "@onflow/fcl";
 import * as types from "@onflow/types";
 import { Label, FileInput } from "flowbite-react";
-import { getids } from "./flow/cadence/scripts/getFileId";
 import { updatePosts } from "./flow/cadence/transactions/updateFileId";
+import { getids } from "./flow/cadence/scripts/getFileId";
 
 const Home = () => {
   const [selectedFile, setSelectedFile] = useState(null);
   const [user, setUser] = useState({ loggedIn: false });
-  const [files, setFiles] = useState([]);
-  const [uploadedId, setUploadedId] = useState(null);
-  const [file, setFile] = useState();
-  const [data, setData] = useState([]);
 
   fcl.config({
     "accessNode.api": "https://access-testnet.onflow.org",
@@ -23,14 +19,8 @@ const Home = () => {
     "app.detail.title": "Bitch",
   });
 
-  const fetchData = async () => {
-    const result = await fcl.send([fcl.script(getids)]).then(fcl.decode);
-    setData(result.reverse());
-  };
-
   useEffect(() => {
     fcl.currentUser.subscribe(setUser);
-    fetchData();
   }, []);
 
   const handleFileInputChange = (event) => {
@@ -38,19 +28,33 @@ const Home = () => {
     setSelectedFile(file);
   };
 
-  const handlePostBtn = async () => {
-    let id = crypto.randomUUID();
-    const transactionId = await fcl
-      .send([
-        fcl.transaction(updatePosts),
-        fcl.args([fcl.arg(id, types.Array(types.String))]),
-        fcl.payer(fcl.authz),
-        fcl.proposer(fcl.authz),
-        fcl.authorizations([fcl.authz]),
-        fcl.limit(9999),
-      ])
-      .then(fcl.decode);
-    fetchData();
+  const handleUpload = async () => {
+    try {
+      if (!selectedFile) {
+        console.error("No file selected");
+        return;
+      }
+
+      // Generate a random ID
+      let id = crypto.randomUUID();
+
+      // Use Flow Client Library (fcl) to send the transaction
+      const transactionId = await fcl
+        .send([
+          fcl.transaction(updatePosts),
+          fcl.args([fcl.arg([id], types.Array(types.String))]),
+          fcl.payer(fcl.authz),
+          fcl.proposer(fcl.authz),
+          fcl.authorizations([fcl.authz]),
+          fcl.limit(9999),
+        ])
+        .then(fcl.decode);
+
+      console.log("Transaction ID:", transactionId);
+      console.log(id);
+    } catch (error) {
+      console.error("Error uploading file:", error);
+    }
   };
 
   return (
@@ -122,17 +126,12 @@ const Home = () => {
             <div className="mt-4">
               {selectedFile && <div className="mb-2">{selectedFile.name}</div>}
               <button
-                onClick={handlePostBtn}
+                onClick={handleUpload}
                 className="px-5 py-2 bg-[#38E8C6] text-[#011E30] rounded-md hover:bg-[#38E8C6] hover:text-[#011E30]"
                 disabled={!selectedFile}
               >
                 Upload
               </button>
-              {uploadedId && (
-                <div className="mt-2 text-[#38E8C6]">
-                  Uploaded ID: {uploadedId}
-                </div>
-              )}
             </div>
           </div>
         ) : (
@@ -140,20 +139,6 @@ const Home = () => {
             Login first to upload files
           </p>
         )}
-
-        {/* Display Uploaded Files */}
-        <div className="mt-8">
-          <h2 className="text-[#38E8C6] mb-4">Uploaded Files:</h2>
-          <ul className="text-[#38E8C6]">
-            {files.map((file) => (
-              <li key={file} className="mb-2">
-                {file}
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        <h1>{file}</h1>
       </main>
     </div>
   );
