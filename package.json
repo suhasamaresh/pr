@@ -9,9 +9,11 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@firebase/database": "^1.0.2",
     "@onflow/fcl": "^1.9.0",
     "firebase": "^10.7.2",
     "flowbite-react": "^0.7.2",
+    "ioredis": "^5.3.2",
     "next": "14.1.0",
     "react": "^18",
     "react-dom": "^18"

@@ -8,6 +8,7 @@ import "firebase/compat/storage";
 import { Label, FileInput } from "flowbite-react";
 import { updateids } from "./flow/cadence/transactions/updateFileId";
 import { getids } from "./flow/cadence/scripts/getFileId";
+import UserFiles from "@/components/getFiles";
 
 const firebaseConfig = {
   apiKey: "AIzaSyD1WuTEKWmXAfGLXW-FAuVC9qkZn_s66ZM",
@@ -27,7 +28,7 @@ const storage = firebase.storage();
 
 const Home = () => {
   const [selectedFiles, setSelectedFiles] = useState([]);
-  const [user, setUser] = useState({ loggedIn: false });
+  const [user, setUser] = useState({ loggedIn: false, addr: "" });
   const [uploadedFiles, setUploadedFiles] = useState([]);
 
   fcl.config({
@@ -41,38 +42,33 @@ const Home = () => {
   useEffect(() => {
     fcl.currentUser.subscribe(setUser);
 
-    // Fetch file IDs using getids script
-    const fetchFileIds = async () => {
+    const fetchUserFiles = async () => {
       try {
-        const response = await fcl.send([
-          fcl.script(getids),
-          fcl.args([]),
-        ]);
+        if (user.loggedIn) {
+          // Fetch file IDs for the user's Flow address using the getids script
+          const response = await fcl.send([
+            fcl.script(getids),
+            fcl.args([fcl.arg([], types.Array(types.String))]),
+          ]);
 
-        const fileIds = fcl.decode(response);
-        return fileIds;
+          const fileIds = fcl.decode(response);
+
+          // Retrieve file URLs from Firebase Storage for the user's Flow address
+          const userFileDataPromises = fileIds.map(async (id) => {
+            const url = await storage.ref(`${user.addr}/${id}`).getDownloadURL();
+            return { id, url };
+          });
+
+          const userFileData = await Promise.all(userFileDataPromises);
+          setUploadedFiles(userFileData);
+        }
       } catch (error) {
-        console.error("Error fetching file IDs:", error);
-        return [];
+        console.error("Error fetching user files:", error);
       }
     };
 
-    const loadFiles = async () => {
-      const fileIds = await fetchFileIds();
-
-      // Retrieve file URLs from Firebase Storage
-      const fileDataPromises = fileIds.map(async (id) => {
-        const url = await storage.ref(id).getDownloadURL();
-        return { id, url };
-      });
-
-      const fileData = await Promise.all(fileDataPromises);
-
-      setUploadedFiles(fileData);
-    };
-
-    loadFiles();
-  }, []);
+    fetchUserFiles();
+  }, [user.loggedIn, user.addr]);
 
   const handleFileInputChange = (event) => {
     const files = event.target.files;
@@ -85,46 +81,49 @@ const Home = () => {
         console.error("No files selected");
         return;
       }
-
+  
       const uploadedFilesData = [];
-
+  
+      // Use the user's Flow address as the folder name
+      const userFlowAddress = user.addr;
+  
       // Upload each file
       for (const file of selectedFiles) {
-        // Generate a random ID
-        const id = crypto.randomUUID();
-
+        // Generate a random ID for the file
+        const fileId = crypto.randomUUID();
+  
         // Use Flow Client Library (fcl) to send the transaction
         await fcl.send([
           fcl.transaction(updateids),
-          fcl.args([fcl.arg([id], types.Array(types.String))]),
+          fcl.args([fcl.arg([fileId], types.Array(types.String))]),
           fcl.payer(fcl.authz),
           fcl.proposer(fcl.authz),
           fcl.authorizations([fcl.authz]),
           fcl.limit(9999),
         ]);
-
-        // Upload file to Firebase Storage
-        const storageRef = storage.ref();
-        const fileRef = storageRef.child(id);
-        await fileRef.put(file);
-
+  
+        // Upload file to Firebase Storage under the user's Flow address folder
+        const storageRef = storage.ref(`${userFlowAddress}/${fileId}`);
+        await storageRef.put(file);
+  
         uploadedFilesData.push({
-          id,
-          url: await fileRef.getDownloadURL(),
+          id: fileId,
+          url: await storageRef.getDownloadURL(),
         });
       }
-
+  
       setUploadedFiles((prevUploadedFiles) => [
         ...prevUploadedFiles,
         ...uploadedFilesData,
       ]);
-
+  
       // Clear selected files after upload
       setSelectedFiles([]);
     } catch (error) {
       console.error("Error uploading files:", error);
     }
   };
+  
 
   const handleLogout = () => {
     // Clear uploaded files and localStorage on logout
@@ -154,14 +153,14 @@ const Home = () => {
           <div>
             {!user.loggedIn ? (
               <button
-                className="border rounded-xl border-black px-5 text-sm text-black py-1"
+                className="border rounded-xl border-black px-5 text-sm text-black py-1 hover:bg-gray-300"
                 onClick={fcl.authenticate}
               >
                 Log In
               </button>
             ) : (
               <button
-                className="border rounded-xl border-black px-5 text-sm text-black py-1"
+                className="border rounded-xl border-black px-5 text-sm text-black hover:bg-gray-300 py-1"
                 onClick={handleLogout}
               >
                 Logout
@@ -232,24 +231,15 @@ const Home = () => {
         )}
 
         {/* Display uploaded files */}
-        {uploadedFiles.length > 0 && (
-          <div className="mt-2 text-black">
-            {uploadedFiles.map((file) => (
-              <div key={file.id}>
-                Uploaded ID: {file.id}
-                <br />
-                <img
-                  src={file.url}
-                  alt="Uploaded File"
-                  className="mt-2 max-w-full h-auto"
-                />
-              </div>
-            ))}
-          </div>
-        )}
+        {user.loggedIn ? (
+          <>
+            <UserFiles userFlowAddress={user.addr} files={uploadedFiles} />
+          </>
+        ) : null}
       </main>
     </div>
   );
 };
 
 export default Home;
+
