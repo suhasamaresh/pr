@@ -226,7 +226,7 @@ const Home = () => {
           </div>
         ) : (
           <p className="text-black text-center">
-            Login first to upload files
+            Please Login first to upload files 
           </p>
         )}
 
