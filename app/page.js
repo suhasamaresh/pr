@@ -10,15 +10,7 @@ import { updateids } from "./flow/cadence/transactions/updateFileId";
 import { getids } from "./flow/cadence/scripts/getFileId";
 import UserFiles from "@/components/getFiles";
 
-const firebaseConfig = {
-  apiKey: "AIzaSyD1WuTEKWmXAfGLXW-FAuVC9qkZn_s66ZM",
-  authDomain: "uploadfile-f371c.firebaseapp.com",
-  projectId: "uploadfile-f371c",
-  storageBucket: "uploadfile-f371c.appspot.com",
-  messagingSenderId: "374876534084",
-  appId: "1:374876534084:web:bd63d7e554eeabcf679311",
-  measurementId: "G-TZJV2KZL60"
-};
+**Firbase Config**
 
 if (!firebase.apps.length) {
   firebase.initializeApp(firebaseConfig);
