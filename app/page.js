@@ -9,15 +9,7 @@ import { Label, FileInput } from "flowbite-react";
 import { updateids } from "./flow/cadence/transactions/updateFileId";
 import UserFiles from "@/components/getFiles";
 
-const firebaseConfig = {
-  apiKey: "AIzaSyD1WuTEKWmXAfGLXW-FAuVC9qkZn_s66ZM",
-  authDomain: "uploadfile-f371c.firebaseapp.com",
-  projectId: "uploadfile-f371c",
-  storageBucket: "uploadfile-f371c.appspot.com",
-  messagingSenderId: "374876534084",
-  appId: "1:374876534084:web:bd63d7e554eeabcf679311",
-  measurementId: "G-TZJV2KZL60",
-};
+**firebase config**
 
 if (!firebase.apps.length) {
   firebase.initializeApp(firebaseConfig);
@@ -245,7 +237,9 @@ const Home = () => {
             </div>
           </div>
         ) : (
-          <p className="text-white text-center">Login first to upload files</p>
+          <p className="text-black text-center">
+            Login first to upload files
+          </p>
         )}
 
         {/* Display uploaded files */}
