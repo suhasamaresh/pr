@@ -7,7 +7,6 @@ import firebase from "firebase/compat/app";
 import "firebase/compat/storage";
 import { Label, FileInput } from "flowbite-react";
 import { updateids } from "./flow/cadence/transactions/updateFileId";
-import { getids } from "./flow/cadence/scripts/getFileId";
 import UserFiles from "@/components/getFiles";
 
 const firebaseConfig = {
@@ -17,7 +16,7 @@ const firebaseConfig = {
   storageBucket: "uploadfile-f371c.appspot.com",
   messagingSenderId: "374876534084",
   appId: "1:374876534084:web:bd63d7e554eeabcf679311",
-  measurementId: "G-TZJV2KZL60"
+  measurementId: "G-TZJV2KZL60",
 };
 
 if (!firebase.apps.length) {
@@ -26,48 +25,26 @@ if (!firebase.apps.length) {
 
 const storage = firebase.storage();
 
+fcl.config({
+  "accessNode.api": "https://access-testnet.onflow.org",
+  "discovery.wallet": `https://fcl-discovery.onflow.org/testnet/authn`,
+  "flow.network": "emulator",
+  "app.detail.icon": "https://avatars.githubusercontent.com/u/62387156?v=4",
+  "app.detail.title": "FlowVault",
+});
+
 const Home = () => {
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [user, setUser] = useState({ loggedIn: false, addr: "" });
   const [uploadedFiles, setUploadedFiles] = useState([]);
 
+  // Configure Flow
   fcl.config({
-    "accessNode.api": "https://access-testnet.onflow.org",
-    "discovery.wallet": `https://fcl-discovery.onflow.org/testnet/authn`,
-    "flow.network": "emulator",
-    "app.detail.icon": "https://avatars.githubusercontent.com/u/62387156?v=4",
-    "app.detail.title": "FlowVault",
+    // ... (your Flow configuration)
   });
 
   useEffect(() => {
     fcl.currentUser.subscribe(setUser);
-
-    const fetchUserFiles = async () => {
-      try {
-        if (user.loggedIn) {
-          // Fetch file IDs for the user's Flow address using the getids script
-          const response = await fcl.send([
-            fcl.script(getids),
-            fcl.args([fcl.arg([], types.Array(types.String))]),
-          ]);
-
-          const fileIds = fcl.decode(response);
-
-          // Retrieve file URLs from Firebase Storage for the user's Flow address
-          const userFileDataPromises = fileIds.map(async (id) => {
-            const url = await storage.ref(`${user.addr}/${id}`).getDownloadURL();
-            return { id, url };
-          });
-
-          const userFileData = await Promise.all(userFileDataPromises);
-          setUploadedFiles(userFileData);
-        }
-      } catch (error) {
-        console.error("Error fetching user files:", error);
-      }
-    };
-
-    fetchUserFiles();
   }, [user.loggedIn, user.addr]);
 
   const handleFileInputChange = (event) => {
@@ -81,17 +58,17 @@ const Home = () => {
         console.error("No files selected");
         return;
       }
-  
+
       const uploadedFilesData = [];
-  
+
       // Use the user's Flow address as the folder name
       const userFlowAddress = user.addr;
-  
+
       // Upload each file
       for (const file of selectedFiles) {
         // Generate a random ID for the file
         const fileId = crypto.randomUUID();
-  
+
         // Use Flow Client Library (fcl) to send the transaction
         await fcl.send([
           fcl.transaction(updateids),
@@ -101,29 +78,28 @@ const Home = () => {
           fcl.authorizations([fcl.authz]),
           fcl.limit(9999),
         ]);
-  
+
         // Upload file to Firebase Storage under the user's Flow address folder
         const storageRef = storage.ref(`${userFlowAddress}/${fileId}`);
         await storageRef.put(file);
-  
+
         uploadedFilesData.push({
           id: fileId,
           url: await storageRef.getDownloadURL(),
         });
       }
-  
+
       setUploadedFiles((prevUploadedFiles) => [
         ...prevUploadedFiles,
         ...uploadedFilesData,
       ]);
-  
+
       // Clear selected files after upload
       setSelectedFiles([]);
     } catch (error) {
       console.error("Error uploading files:", error);
     }
   };
-  
 
   const handleLogout = () => {
     // Clear uploaded files and localStorage on logout
@@ -134,51 +110,95 @@ const Home = () => {
 
   return (
     <div className="bg-white text-black flex flex-col min-h-screen">
-      <main className="container mx-auto flex-1 p-5">
-        <div className="mb-10 flex justify-between items-center pr-10 pt-2">
+      <header className="container mx-auto flex justify-between items-center pr-10 pt-2 pb-2">
+        <div className="flex items-center">
+          <img
+            src="/v.jpg"
+            alt="Logo"
+            className="h-10 w-10 mr-2 rounded-full"
+          />
           <div>
-            <div className="flex items-center p-4 bg-white ">
-              <img
-                src="/v.jpg"
-                alt="Logo"
-                className="h-10 w-10 mr-2 rounded-full"
-              />
-              <div>
-                <h1 className="text-lg font-semibold text-gray-800">
-                  FLOW VAULT
-                </h1>
-              </div>
-            </div>
+            <a href='/' className="text-lg font-semibold text-gray-800">FLOW VAULT</a>
           </div>
-          <div>
-            {!user.loggedIn ? (
+          <nav className="ml-6 space-x-4">
+            <a href="#" className="text-gray-800 hover:text-gray-600">
+              Home
+            </a>
+            <a href="#" className="text-gray-800 hover:text-gray-600">
+              Upload
+            </a>
+            <a href="#" className="text-gray-800 hover:text-gray-600">
+              Files
+            </a>
+            <a href="#" className="text-gray-800 hover:text-gray-600">
+              About Us
+            </a>
+          </nav>
+        </div>
+        <div>
+          {!user.loggedIn ? (
+            <>
               <button
-                className="border rounded-xl border-black px-5 text-sm text-black py-1 hover:bg-gray-300"
+                className="border rounded-lg bg-blue-700 text-white px-5 text-sm font-semibold py-2 mr-4"
                 onClick={fcl.authenticate}
               >
-                Log In
+                Get Started
               </button>
-            ) : (
               <button
-                className="border rounded-xl border-black px-5 text-sm text-black hover:bg-gray-300 py-1"
+                className="border rounded-lg px-5 text-sm  text-green-300 bg-gray-200 py-2"
                 onClick={handleLogout}
               >
-                Logout
+                Register
               </button>
-            )}
-          </div>
+            </>
+          ) : (
+            <button
+              className="border rounded-xl border-black px-5 text-sm text-black hover:bg-gray-300 py-1"
+              onClick={handleLogout}
+            >
+              Logout
+            </button>
+          )}
         </div>
+      </header>
 
+      <section className="flex flex-col items-center justify-center bg-black text-white w-full">
+        <div className="text-4xl mt-24 text-center mb-6 font-bold">
+          <span className="text-blue-600">Upload, Share</span>
+          <br /> and Easily <span className="text-blue-600">Manage</span> Your
+          <br /> Files
+        </div>
+        <div className="text-lg text-center mb-6">
+          Drag and drop your files to securely store your data, leveraging the
+          <br />
+          power of blockchain to keep your data safe and secure.
+        </div>
+        {user.loggedIn ? (
+          <p className="text-white text-center mb-20">Upload files below</p>
+          
+        ) : (
+          <div className="flex space-x-4 mb-20">
+            <button
+              className="bg-red-500 text-white px-6 py-2 hover:bg-red-600"
+              onClick={fcl.authenticate}
+            >
+              Get Started
+            </button>
+          </div>
+        )}
+      </section>
+
+      <main className="container  w-full flex-1 p-5 bg-black text-white">
         {/* File Input Section */}
         {user.loggedIn ? (
           <div className="flex w-full items-center justify-center">
             <Label
               htmlFor="dropzone-file"
-              className="dark:hover:bg-bray-800 flex h-64 w-full cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-800 bg-white hover:bg-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:hover:border-gray-500 dark:hover:bg-gray-600"
+              className="dark:hover:bg-bray-800 flex h-64 w-full cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-800 bg-black hover:bg-[#111111] dark:border-gray-600 dark:bg-gray-700 dark:hover:border-[#111111] dark:hover:bg-[#111111]"
             >
               <div className="flex flex-col items-center justify-center pb-6 pt-5">
                 <svg
-                  className="mb-4 h-8 w-8 text-black"
+                  className="mb-4 h-8 w-8 text-white"
                   aria-hidden="true"
                   xmlns="http://www.w3.org/2000/svg"
                   fill="none"
@@ -192,7 +212,7 @@ const Home = () => {
                     d="M13 13h3a3 3 0 0 0 0-6h-.025A5.56 5.56 0 0 0 16 6.5 5.5 5.5 0 0 0 5.207 5.021C5.137 5.017 5.071 5 5 5a4 4 0 0 0 0 8h2.167M10 15V6m0 0L8 8m2-2 2 2"
                   />
                 </svg>
-                <p className="mb-2 text-sm text-black ">
+                <p className="mb-2 text-sm text-white">
                   <span className="font-semibold">Click to upload</span> or drag
                   and drop
                 </p>
@@ -217,7 +237,7 @@ const Home = () => {
               )}
               <button
                 onClick={handleUpload}
-                className="px-5 py-2 bg-black text-white rounded-md hover:bg-gray-800"
+                className="px-5 py-2 bg-white text-black rounded-md hover:bg-gray-800"
                 disabled={selectedFiles.length === 0}
               >
                 Upload
@@ -225,9 +245,7 @@ const Home = () => {
             </div>
           </div>
         ) : (
-          <p className="text-black text-center">
-            Login first to upload files
-          </p>
+          <p className="text-white text-center">Login first to upload files</p>
         )}
 
         {/* Display uploaded files */}
@@ -242,4 +260,3 @@ const Home = () => {
 };
 
 export default Home;
-
