@@ -9,7 +9,15 @@ import { Label, FileInput } from "flowbite-react";
 import { updateids } from "./flow/cadence/transactions/updateFileId";
 import UserFiles from "@/components/getFiles";
 
-**firebase config**
+const firebaseConfig = {
+  apiKey: "AIzaSyD1WuTEKWmXAfGLXW-FAuVC9qkZn_s66ZM",
+  authDomain: "uploadfile-f371c.firebaseapp.com",
+  projectId: "uploadfile-f371c",
+  storageBucket: "uploadfile-f371c.appspot.com",
+  messagingSenderId: "374876534084",
+  appId: "1:374876534084:web:bd63d7e554eeabcf679311",
+  measurementId: "G-TZJV2KZL60",
+};
 
 if (!firebase.apps.length) {
   firebase.initializeApp(firebaseConfig);
@@ -116,10 +124,10 @@ const Home = () => {
             <a href="#" className="text-gray-800 hover:text-gray-600">
               Home
             </a>
-            <a href="#" className="text-gray-800 hover:text-gray-600">
+            <a href="#upload" className="text-gray-800 hover:text-gray-600">
               Upload
             </a>
-            <a href="#" className="text-gray-800 hover:text-gray-600">
+            <a href="#files" className="text-gray-800 hover:text-gray-600">
               Files
             </a>
             <a href="#" className="text-gray-800 hover:text-gray-600">
@@ -135,12 +143,6 @@ const Home = () => {
                 onClick={fcl.authenticate}
               >
                 Get Started
-              </button>
-              <button
-                className="border rounded-lg px-5 text-sm  text-green-300 bg-gray-200 py-2"
-                onClick={handleLogout}
-              >
-                Register
               </button>
             </>
           ) : (
@@ -180,8 +182,10 @@ const Home = () => {
         )}
       </section>
 
+
       <main className="container  w-full flex-1 p-5 bg-black text-white">
         {/* File Input Section */}
+        <section id="upload">
         {user.loggedIn ? (
           <div className="flex w-full items-center justify-center">
             <Label
@@ -237,17 +241,18 @@ const Home = () => {
             </div>
           </div>
         ) : (
-          <p className="text-black text-center">
-            Login first to upload files
-          </p>
+          <p className="text-white text-center">Login first to upload files</p>
         )}
+        </section>
 
         {/* Display uploaded files */}
+        <section id="files">
         {user.loggedIn ? (
           <>
             <UserFiles userFlowAddress={user.addr} files={uploadedFiles} />
           </>
         ) : null}
+        </section>
       </main>
     </div>
   );

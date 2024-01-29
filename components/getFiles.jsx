@@ -1,5 +1,4 @@
 // UserFiles.jsx
-"use client"
 import React, { useEffect, useState } from "react";
 import firebase from "firebase/compat/app";
 import "firebase/compat/storage";
@@ -65,7 +64,7 @@ const UserFiles = ({ userFlowAddress }) => {
                 alt="Uploaded File"
                 className="mt-2 max-w-full h-auto"
               />
-              <button onClick={() => handleDelete(file.id)} className="text-white bg-black rounded-full pt-2 pb-2 pl-4 pr-4 mt-1">Delete</button>
+              <button onClick={() => handleDelete(file.id)} className="text-white bg-red-800 rounded-full pt-2 pb-2 pl-4 pr-4 mt-1">Delete</button>
             </div>
           ))}
         </div>
