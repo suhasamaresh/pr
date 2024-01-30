@@ -233,7 +233,7 @@ const Home = () => {
               )}
               <button
                 onClick={handleUpload}
-                className="px-5 py-2 bg-white text-black rounded-md hover:bg-gray-800"
+                className="px-5 py-2 bg-white text-black rounded-md hover:bg-gray-200"
                 disabled={selectedFiles.length === 0}
               >
                 Upload
